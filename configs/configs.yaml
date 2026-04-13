@@ -2,6 +2,7 @@
 #  ECC-Encrypt Configuration — configs.yaml
 # ==============================================================
 
+
 # --- Elliptic Curve Parameters (secp256k1) ---
 ecc:
   p:  "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F"
