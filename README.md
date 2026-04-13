@@ -1,339 +1,187 @@
+<a id="readme-top"></a>
 
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![License][license-shield]][license-url]
 
-## Cấu Trúc Project
+<br />
+<div align="center">
+  <h3 align="center">ECC-Encrypt 🔐</h3>
 
+  <p align="center">
+    A Complete, From-Scratch Implementation of the ECIES Encrypted Pipeline in C/C++!
+    <br />
+    <a href="#about-the-project"><strong>Explore the docs »</strong></a>
+    <br />
+    <br />
+    <a href="https://github.com/phucxxo/ECC-Encrypt/issues">Report Bug</a>
+    ·
+    <a href="https://github.com/phucxxo/ECC-Encrypt/issues">Request Feature</a>
+  </p>
+</div>
+
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+      <a href="#about-the-project">About The Project</a>
+      <ul>
+        <li><a href="#built-with">Built With</a></li>
+        <li><a href="#architecture-and-structure">Architecture & Structure</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation</a></li>
+      </ul>
+    </li>
+    <li><a href="#usage--build">Usage & Build</a></li>
+    <li><a href="#security-model">Security Model</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#license">License</a></li>
+  </ol>
+</details>
+
+## About The Project
+
+**ECC-Encrypt** is a lightweight, educational Elliptic Curve Integrated Encryption Scheme (ECIES) pipeline implemented almost entirely from scratch in C and C++. It demonstrates the end-to-end process of public-key encryption using Elliptic Curve Cryptography (ECC) without relying on huge cryptographic libraries like OpenSSL for its core symmetric components.
+
+The project breaks down the cryptographic workflow into purely modular, easy-to-understand components: 
+- Elliptic Curve Diffie-Hellman (ECDH) Key Exchange
+- Hash-based Key Derivation Function (HKDF)
+- Advanced Encryption Standard (AES-256)
+- Galois/Counter Mode (GCM) for Authenticated Encryption
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Built With
+
+* [![C++][C++-shield]][C++-url]
+* [![C][C-shield]][C-url]
+* **GMP Library** (GNU Multiple Precision Arithmetic Library - Used exclusively for 256-bit Big Number mathematics)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Architecture and Structure
+
+The codebase is professionally separated into modular directories corresponding to the ECIES workflow:
+
+```text
+ECC-Encrypt/
+├── ecdh/         # Elliptic Curve Operations, secp256k1 params, ECDH Shared Secret
+├── hkdf/         # HKDF implementation (RFC 5869) & SHA-256 hashing
+├── aes256/       # AES-256 block cipher implementation (FIPS 197)
+├── gcm/          # Galois/Counter Mode (GCM) for authenticated encryption
+└── README.md     # Project documentation
 ```
-ECC Encrypt/
-├── config.h               # Tham số Elliptic Curve secp256k1
-├── elliptic_curve.h       # Point operations & Scalar multiplication
-├── key_generation.h       # Sinh khóa (d, Q)
-├── ecdh.h                # ECDH - Tính Shared Secret
-├── kdf.h                 # KDF - Dẫn xuất AES Key
-├── aes_gcm.h            # AES-256-GCM header
-├── aes_gcm.cpp          # AES-256-GCM implementation
-├── decryption.h         # Giải mã & Xác minh
-├── main.cpp             # Chương trình Chính
-├── Makefile             # Build với make
-├── CMakeLists.txt       # Build với cmake
-└── README.md            # File này
-```
 
----
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-## Dependencies
+## Getting Started
 
-### Required Libraries
+To get a local copy up and running, follow these simple steps.
 
-1. **GMP (GNU Multiple Precision)**
-   - Để tính toán bignum (số 256-bit)
-   - Không phải crypto library
+### Prerequisites
 
-2. **OpenSSL**
-   - Cho HMAC-SHA256 (KDF)
-   - Cho AES-256-GCM encryption/decryption
-   - Cho RAND_bytes() (sinh IV ngẫu nhiên)
+The only external dependency required is the **GMP library** for handling large integers (big numbers) used in elliptic curve calculations. You no longer need OpenSSL.
+
+* **Linux (Ubuntu/Debian)**
+  ```sh
+  sudo apt-get update
+  sudo apt-get install libgmp-dev build-essential
+  ```
+* **macOS**
+  ```sh
+  brew install gmp
+  ```
 
 ### Installation
 
-#### Linux (Ubuntu/Debian)
-```bash
-sudo apt-get install libgmp-dev libssl-dev build-essential
+1. Clone the repository
+   ```sh
+   git clone https://github.com/phucxxo/ECC-Encrypt.git
+   ```
+2. Navigate into the directory
+   ```sh
+   cd ECC-Encrypt
+   ```
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## Usage & Build
+
+You can compile the modules and run the demonstration by linking the C and C++ sources together. Here is an example of compiling the ECDH demonstration:
+
+```sh
+# Compile the ECDH main application
+g++ -std=c++11 -o ecdh_demo ecdh/main.cpp -lgmp
+
+# Run the program
+./ecdh_demo
 ```
 
-#### macOS
-```bash
-brew install gmp openssl
-```
+*(Note: Ensure you include other `.c` files such as `hkdf/hkdf.c`, `hkdf/sha256.c`, `aes256/aes256.c`, and `gcm/gcm.c` in your build command as you integrate the full compiling pipeline.)*
 
-#### Windows (MinGW/Visual Studio)
-- GMP: https://gmplib.org/
-- OpenSSL: https://slproweb.com/products/Win32OpenSSL.html
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
----
+## Security Model
 
-## Build & Run
+| Component            | Specification              | Security Description                        |
+|----------------------|----------------------------|---------------------------------------------|
+| **Key Generation**   | secp256k1 Curve            | 256-bit ECC Private/Public Keypair          |
+| **Key Exchange**     | ECDH                       | Generates robust shared secret point        |
+| **Key Derivation**   | HKDF-SHA256                | Derives secure AES keys from shared secret  |
+| **Encryption**       | AES-256-GCM                | Authenticated encryption (128-bit security) |
 
-### Using Makefile
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-```bash
-# Build
-make
+## Roadmap
 
-# Run
-make run
+- [x] Implement ECDH and Big Num Operations
+- [x] Implement AES-256 Core
+- [x] Implement AES-GCM Mode
+- [x] Implement HKDF & SHA-256
+- [ ] Centralize `main.cpp` for the complete ECIES pipeline
+- [ ] Add Makefile / CMakeLists.txt for easy building
 
-# Clean
-make clean
-```
+See the [open issues](https://github.com/phucxxo/ECC-Encrypt/issues) for a full list of proposed features (and known issues).
 
-### Using CMake
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-```bash
-# Create build directory
-mkdir build
-cd build
+## Contributing
 
-# Configure and build
-cmake ..
-cmake --build .
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-# Run
-./ecc_encrypt
-```
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-### Manual Compilation
-
-```bash
-g++ -std=c++11 -o ecc_encrypt main.cpp aes_gcm.cpp -lgmp -lssl -lcrypto
-./ecc_encrypt
-```
-
----
-
-## Luồng Chương Trình
-
-```
-1. Key Generation
-   └─ Alice: (d_A, Q_A)
-   └─ Bob:   (d_B, Q_B)
-
-2. ECDH (Trao đổi public key)
-   └─ S = d_A * Q_B = d_B * Q_A  (Shared Secret)
-
-3. KDF (Dẫn xuất khóa)
-   └─ AES-Key = KDF(S_x)
-
-4. AES-GCM Encryption
-   └─ Ciphertext = AES-GCM(Plaintext, Key, IV)
-
-5. Transmission
-   └─ Gửi [Ciphertext, IV, Tag] qua kênh công khai
-
-6. AES-GCM Decryption
-   └─ Plaintext = AES-GCM(Ciphertext, Key, IV, Tag)
-
-7. Verification
-   └─ Plaintext_gốc == Plaintext_giải_mã ✓
-```
-
----
-
-## Chi Tiết Các Modules
-
-### 1. `config.h` - Tham số Elliptic Curve
-
-Định nghĩa secp256k1:
-- `p`: Prime modulus
-- `a, b`: Curve coefficients
-- `Gx, Gy`: Base point G
-- `n`: Order of G
-- `h`: Cofactor
-
-```cpp
-mpz_class p = ECCConfig::p();
-mpz_class n = ECCConfig::n();
-EllipticCurvePoint G(ECCConfig::Gx(), ECCConfig::Gy());
-```
-
-### 2. `elliptic_curve.h` - ECC Operations
-
-Clas `EllipticCurvePoint`:
-- `x, y`: Tọa độ điểm
-- `is_infinity`: Bool để lưu điểm vô cực
-
-Class `EllipticCurve`:
-- `mod_inverse(a, m)`: Tính a^-1 mod m (Extended GCD)
-- `point_add(P, Q)`: Cộng hai điểm
-- `point_multiply(k, P)`: Nhân vô hướng (Binary Method)
-- `on_curve(P)`: Kiểm tra P có nằm trên curve
-
-### 3. `key_generation.h` - Sinh Khóa
-
-```cpp
-struct KeyPair {
-    mpz_class d;           // Private key (256-bit random)
-    EllipticCurvePoint Q;  // Public key Q = d * G
-};
-
-auto keypair = KeyGeneration::generate_keypair();
-```
-
-### 4. `ecdh.h` - ECDH Protocol
-
-```cpp
-EllipticCurvePoint shared_secret = 
-    ECDH::compute_shared_secret(private_key, public_key);
-```
-
-### 5. `kdf.h` - Key Derivation
-
-Sử dụng HMAC-SHA256:
-
-```cpp
-unsigned char aes_key[32];
-KDF::kdf_hmac_sha256(shared_secret.x, aes_key, 32);
-```
-
-### 6. `aes_gcm.h` / `aes_gcm.cpp` - AES-256-GCM
-
-#### Lookup Tables:
-- `sbox[256]`: AES S-box
-- `inv_sbox[256]`: Inverse S-box
-- `rcon[11]`: Round constant
-- `gmul2[256], gmul3[256], ...`: Multiplication tables
-
-#### Functions:
-```cpp
-void AES_GCM::encrypt(const uint8_t* plaintext, size_t len,
-                     const uint8_t* key,
-                     uint8_t* iv,
-                     uint8_t* ciphertext,
-                     uint8_t* tag);
-
-bool AES_GCM::decrypt(const uint8_t* ciphertext, size_t len,
-                     const uint8_t* key,
-                     const uint8_t* iv,
-                     const uint8_t* tag,
-                     uint8_t* plaintext);
-```
-
-### 7. `decryption.h` - Decryption Module
-
-```cpp
-bool success = Decryption::decrypt_packet(
-    ciphertext, len, iv, tag, key, plaintext
-);
-```
-
----
-
-## Tính Chất Bảo Mật
-
-| Component | Size | Security |
-|-----------|------|----------|
-| ECC Key | 256-bit | 128-bit |
-| AES Key | 256-bit | 256-bit |
-| GCM Tag | 128-bit | 128-bit |
-| IV | 96-bit | 128-bit security level |
-
-**Overall**: 128-bit security (limited by ECDLP assumption)
-
----
-
-## Kết Quả Chạy (Sample Output)
-
-```
-============================================================
-ECC Encrypt - End-to-End Encryption System (C++)
-============================================================
-
-[STEP 1] Key Generation - Sinh khóa cho Alice và Bob
-
-============================================================
-Alice - Key Generation
-============================================================
-Private Key (d): 0x...
-Public Key (Q): (0x..., 0x...)
-...
-
-[STEP 2] ECDH - Tính Shared Secret
-============================================================
-ECDH (Elliptic Curve Diffie-Hellman)
-============================================================
-Shared Secret S = (..., ...)
-...
-
-[STEP 3] KDF - Dẫn xuất khóa AES từ Shared Secret
-============================================================
-KDF (Key Derivation Function)
-============================================================
-Derived Key (AES): ...
-...
-
-[STEP 4] AES-GCM Encryption - Alice mã hóa plaintext
-============================================================
-AES-256-GCM Encryption
-============================================================
-Plaintext: Hello Bob! This is a secret message from Alice.
-Plaintext (hex): ...
-Ciphertext (hex): ...
-IV (hex): ...
-Authentication Tag (hex): ...
-...
-
-[STEP 5] Transmission - Alice gửi ciphertext cho Bob
-Alice gửi: [Ciphertext + IV + Tag] qua kênh công khai
-Chỉ Bob (người có private key d_B) mới có thể giải mã
-
-[STEP 6] AES-GCM Decryption - Bob giải mã
-============================================================
-AES-256-GCM Decryption
-============================================================
-Decrypted Plaintext: Hello Bob! This is a secret message from Alice.
-...
-
-✓ Decryption SUCCESSFUL - Plaintext matches!
-
-============================================================
-SUMMARY - Tóm tắt Quá trình
-============================================================
-
-✓ Key Generation:  Alice & Bob sinh cặp khóa ECC
-✓ ECDH:           Tính Shared Secret dùng chung (d_A * Q_B = d_B * Q_A = S)
-✓ KDF:            Dẫn xuất AES-256 key từ S_x
-✓ AES-GCM Enc:    Alice mã hóa plaintext thành ciphertext
-✓ Transmission:   Gửi [Ciphertext, IV, Tag] qua kênh công khai
-✓ AES-GCM Dec:    Bob giải mã ciphertext bằng AES key
-✓ Verification:   Plaintext gốc = Plaintext giải mã ✓
-
-============================================================
-ECC Encrypt Process Completed Successfully!
-============================================================
-```
-
----
-
-## Compliance with Requirements
-
-| Requirement | Status | Details |
-|------------|--------|---------|
-| No ECC library | ✓ | viết từ đầu: KeyGen, ECDH, KDF |
-| Each block = 1 file | ✓ | 7 header files + 1 config |
-| Main calls modules | ✓ | main.cpp orchestrates |
-| Code from scratch | ✓ | Elliptic Curve math từ đầu |
-| C/C++ Implementation | ✓ | C++ with GMP & OpenSSL |
-| **Working** | ✓ | Full end-to-end encryption |
-
----
-
-## Mở Rộng & Cải Tiến
-
-Có thể thêm:
-1. **Signature**: ECDSA để xác thực người gửi
-2. **Compression**: Nén plaintext trước mã hóa
-3. **Performance**: Hardware acceleration (AES-NI)
-4. **Forward Secrecy**: Ephemeral keys per session
-5. **Unit Tests**: Kiểm tra từng module
-
----
-
-## Tài Liệu Tham Khảo
-
-- SECP256K1: https://en.bitcoin.it/wiki/Secp256k1
-- ECDH: https://en.wikipedia.org/wiki/Elliptic-curve_Diffie%E2%80%93Hellman
-- AES-GCM: https://en.wikipedia.org/wiki/Galois/Counter_Mode
-- GMP: https://gmplib.org/
-- OpenSSL: https://www.openssl.org/
-
----
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## License
 
-Educational purpose - No warranty
+Distributed under the MIT License. Use for educational purposes.
 
----
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-**Date**: April 8, 2026  
-**Status**: ✓ Complete  
-**Language**: C++  
-**Dependencies**: GMP, OpenSSL
+[contributors-shield]: https://img.shields.io/github/contributors/phucxxo/ECC-Encrypt.svg?style=for-the-badge
+[contributors-url]: https://github.com/phucxxo/ECC-Encrypt/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/phucxxo/ECC-Encrypt.svg?style=for-the-badge
+[forks-url]: https://github.com/phucxxo/ECC-Encrypt/network/members
+[stars-shield]: https://img.shields.io/github/stars/phucxxo/ECC-Encrypt.svg?style=for-the-badge
+[stars-url]: https://github.com/phucxxo/ECC-Encrypt/stargazers
+[issues-shield]: https://img.shields.io/github/issues/phucxxo/ECC-Encrypt.svg?style=for-the-badge
+[issues-url]: https://github.com/phucxxo/ECC-Encrypt/issues
+[license-shield]: https://img.shields.io/github/license/phucxxo/ECC-Encrypt.svg?style=for-the-badge
+[license-url]: https://github.com/phucxxo/ECC-Encrypt/blob/main/LICENSE
+[C-shield]: https://img.shields.io/badge/C-00599C?style=for-the-badge&logo=c&logoColor=white
+[C-url]: https://en.cppreference.com/w/c
+[C++-shield]: https://img.shields.io/badge/c++-%2300599C.svg?style=for-the-badge&logo=c%2B%2B&logoColor=white
+[C++-url]: https://isocpp.org/
