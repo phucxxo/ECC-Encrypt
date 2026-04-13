@@ -1,0 +1,8 @@
+# Build artifacts
+build/
+ecc_encrypt
+
+# OS files
+.DS_Store
+*.swp
+*~

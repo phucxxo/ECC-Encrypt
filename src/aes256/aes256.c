@@ -1,24 +1,10 @@
 /*
- * aes256.c — AES-256 block cipher implementation (FIPS 197)
- *
- * AES operates on a 4x4 byte "state" = 16 bytes = 128-bit block.
- * Each round applies 4 transformations:
- *   1. SubBytes:    Non-linear byte substitution via S-box
- *   2. ShiftRows:   Cyclic shift of each row
- *   3. MixColumns:  Column mixing in GF(2^8)
- *   4. AddRoundKey: XOR with round key
- *
- * The final round omits MixColumns.
- * Key expansion: generates 15 round keys (60 words) from 32-byte key.
+ * aes256.c — AES-256 block cipher (FIPS 197)
  */
 
 #include "aes256.h"
 #include <string.h>
 
-/* ========================================================
- * S-Box (Substitution Box) — 256 entries
- * Derived from multiplicative inverse in GF(2^8) + affine transform
- * ======================================================== */
 static const uint8_t SBOX[256] = {
     0x63,0x7c,0x77,0x7b,0xf2,0x6b,0x6f,0xc5,0x30,0x01,0x67,0x2b,0xfe,0xd7,0xab,0x76,
     0xca,0x82,0xc9,0x7d,0xfa,0x59,0x47,0xf0,0xad,0xd4,0xa2,0xaf,0x9c,0xa4,0x72,0xc0,
@@ -38,7 +24,6 @@ static const uint8_t SBOX[256] = {
     0x8c,0xa1,0x89,0x0d,0xbf,0xe6,0x42,0x68,0x41,0x99,0x2d,0x0f,0xb0,0x54,0xbb,0x16
 };
 
-/* Inverse S-Box — used by aes256_decrypt_block */
 static const uint8_t INV_SBOX[256] = {
     0x52,0x09,0x6a,0xd5,0x30,0x36,0xa5,0x38,0xbf,0x40,0xa3,0x9e,0x81,0xf3,0xd7,0xfb,
     0x7c,0xe3,0x39,0x82,0x9b,0x2f,0xff,0x87,0x34,0x8e,0x43,0x44,0xc4,0xde,0xe9,0xcb,
@@ -58,23 +43,15 @@ static const uint8_t INV_SBOX[256] = {
     0x17,0x2b,0x04,0x7e,0xba,0x77,0xd6,0x26,0xe1,0x69,0x14,0x63,0x55,0x21,0x0c,0x7d
 };
 
-/* Round constants for key expansion */
 static const uint32_t RCON[10] = {
     0x01000000, 0x02000000, 0x04000000, 0x08000000, 0x10000000,
     0x20000000, 0x40000000, 0x80000000, 0x1b000000, 0x36000000
 };
 
-/* ========================================================
- * GF(2^8) arithmetic
- * Irreducible polynomial: x^8 + x^4 + x^3 + x + 1 = 0x11b
- * ======================================================== */
-
-/* xtime: multiply by x (i.e. by 2) in GF(2^8) */
 static inline uint8_t xtime(uint8_t a) {
     return (uint8_t)((a << 1) ^ ((a >> 7) ? 0x1b : 0x00));
 }
 
-/* General GF(2^8) multiplication via repeated xtime */
 static inline uint8_t gf_mul(uint8_t a, uint8_t b) {
     uint8_t result = 0;
     for (int i = 0; i < 8; i++) {
@@ -85,12 +62,6 @@ static inline uint8_t gf_mul(uint8_t a, uint8_t b) {
     return result;
 }
 
-/* ========================================================
- * Key Expansion (Key Schedule)
- * AES-256: Nk=8, Nr=14, total 60 words (15 round keys x 4 words)
- * ======================================================== */
-
-/* SubWord: apply S-box to each byte of a 32-bit word */
 static uint32_t sub_word(uint32_t w) {
     return ((uint32_t)SBOX[(w >> 24) & 0xff] << 24) |
            ((uint32_t)SBOX[(w >> 16) & 0xff] << 16) |
@@ -98,16 +69,14 @@ static uint32_t sub_word(uint32_t w) {
            ((uint32_t)SBOX[ w        & 0xff]);
 }
 
-/* RotWord: rotate left by 8 bits */
 static uint32_t rot_word(uint32_t w) {
     return (w << 8) | (w >> 24);
 }
 
 void aes256_init(aes256_ctx *ctx, const uint8_t key[AES_KEY_LEN]) {
     uint32_t *W = ctx->round_key;
-    const int Nk = 8;  /* AES-256: 8 words per key */
+    const int Nk = 8;
 
-    /* Load key bytes into W[0..7] (big-endian word packing) */
     for (int i = 0; i < Nk; i++) {
         W[i] = ((uint32_t)key[4*i]     << 24) |
                ((uint32_t)key[4*i + 1] << 16) |
@@ -115,26 +84,17 @@ void aes256_init(aes256_ctx *ctx, const uint8_t key[AES_KEY_LEN]) {
                ((uint32_t)key[4*i + 3]);
     }
 
-    /* Expand to 60 words */
     for (int i = Nk; i < 4 * (AES_ROUNDS + 1); i++) {
         uint32_t temp = W[i - 1];
         if (i % Nk == 0) {
             temp = sub_word(rot_word(temp)) ^ RCON[i / Nk - 1];
         } else if (i % Nk == 4) {
-            /* AES-256 extra SubWord when Nk > 6 and i mod Nk == 4 */
             temp = sub_word(temp);
         }
         W[i] = W[i - Nk] ^ temp;
     }
 }
 
-/* ========================================================
- * State transformations
- * State is stored column-major: state[col][row]
- * Loading: state[0][0]=in[0], state[0][1]=in[1], ..., state[1][0]=in[4], ...
- * ======================================================== */
-
-/* AddRoundKey: XOR state with the round-th round key */
 static void add_round_key(uint8_t state[4][4], const uint32_t *W, int round) {
     for (int c = 0; c < 4; c++) {
         uint32_t word = W[round * 4 + c];
@@ -145,57 +105,42 @@ static void add_round_key(uint8_t state[4][4], const uint32_t *W, int round) {
     }
 }
 
-/* SubBytes: replace each byte via SBOX lookup */
 static void sub_bytes(uint8_t state[4][4]) {
     for (int c = 0; c < 4; c++)
         for (int r = 0; r < 4; r++)
             state[c][r] = SBOX[state[c][r]];
 }
 
-/* InvSubBytes: replace each byte via INV_SBOX lookup */
 static void inv_sub_bytes(uint8_t state[4][4]) {
     for (int c = 0; c < 4; c++)
         for (int r = 0; r < 4; r++)
             state[c][r] = INV_SBOX[state[c][r]];
 }
 
-/* ShiftRows: cyclically shift row r left by r positions */
 static void shift_rows(uint8_t state[4][4]) {
     uint8_t tmp;
-    /* Row 1: shift left by 1 */
     tmp = state[0][1];
     state[0][1] = state[1][1]; state[1][1] = state[2][1];
     state[2][1] = state[3][1]; state[3][1] = tmp;
-    /* Row 2: shift left by 2 */
     tmp = state[0][2]; state[0][2] = state[2][2]; state[2][2] = tmp;
     tmp = state[1][2]; state[1][2] = state[3][2]; state[3][2] = tmp;
-    /* Row 3: shift left by 3 = shift right by 1 */
     tmp = state[3][3];
     state[3][3] = state[2][3]; state[2][3] = state[1][3];
     state[1][3] = state[0][3]; state[0][3] = tmp;
 }
 
-/* InvShiftRows: cyclically shift row r right by r positions */
 static void inv_shift_rows(uint8_t state[4][4]) {
     uint8_t tmp;
-    /* Row 1: shift right by 1 */
     tmp = state[3][1];
     state[3][1] = state[2][1]; state[2][1] = state[1][1];
     state[1][1] = state[0][1]; state[0][1] = tmp;
-    /* Row 2: shift right by 2 */
     tmp = state[0][2]; state[0][2] = state[2][2]; state[2][2] = tmp;
     tmp = state[1][2]; state[1][2] = state[3][2]; state[3][2] = tmp;
-    /* Row 3: shift right by 3 = shift left by 1 */
     tmp = state[0][3];
     state[0][3] = state[1][3]; state[1][3] = state[2][3];
     state[2][3] = state[3][3]; state[3][3] = tmp;
 }
 
-/* MixColumns: matrix multiply in GF(2^8)
- * [ 2 3 1 1 ]   [ s0 ]
- * [ 1 2 3 1 ] x [ s1 ]
- * [ 1 1 2 3 ]   [ s2 ]
- * [ 3 1 1 2 ]   [ s3 ] */
 static void mix_columns(uint8_t state[4][4]) {
     for (int c = 0; c < 4; c++) {
         uint8_t s0 = state[c][0], s1 = state[c][1];
@@ -207,7 +152,6 @@ static void mix_columns(uint8_t state[4][4]) {
     }
 }
 
-/* InvMixColumns: inverse matrix multiply in GF(2^8) */
 static void inv_mix_columns(uint8_t state[4][4]) {
     for (int c = 0; c < 4; c++) {
         uint8_t s0 = state[c][0], s1 = state[c][1];
@@ -219,24 +163,17 @@ static void inv_mix_columns(uint8_t state[4][4]) {
     }
 }
 
-/* ========================================================
- * Encrypt / Decrypt
- * ======================================================== */
-
 void aes256_encrypt_block(const aes256_ctx *ctx,
                           const uint8_t in[AES_BLOCK_LEN],
                           uint8_t out[AES_BLOCK_LEN]) {
     uint8_t state[4][4];
 
-    /* Load input into state (column-major order) */
     for (int c = 0; c < 4; c++)
         for (int r = 0; r < 4; r++)
             state[c][r] = in[c * 4 + r];
 
-    /* Initial round key addition */
     add_round_key(state, ctx->round_key, 0);
 
-    /* Rounds 1..13: SubBytes, ShiftRows, MixColumns, AddRoundKey */
     for (int round = 1; round < AES_ROUNDS; round++) {
         sub_bytes(state);
         shift_rows(state);
@@ -244,12 +181,10 @@ void aes256_encrypt_block(const aes256_ctx *ctx,
         add_round_key(state, ctx->round_key, round);
     }
 
-    /* Final round (no MixColumns) */
     sub_bytes(state);
     shift_rows(state);
     add_round_key(state, ctx->round_key, AES_ROUNDS);
 
-    /* Write state to output */
     for (int c = 0; c < 4; c++)
         for (int r = 0; r < 4; r++)
             out[c * 4 + r] = state[c][r];
@@ -260,15 +195,12 @@ void aes256_decrypt_block(const aes256_ctx *ctx,
                           uint8_t out[AES_BLOCK_LEN]) {
     uint8_t state[4][4];
 
-    /* Load input into state (column-major order) */
     for (int c = 0; c < 4; c++)
         for (int r = 0; r < 4; r++)
             state[c][r] = in[c * 4 + r];
 
-    /* Initial round key addition (round 14) */
     add_round_key(state, ctx->round_key, AES_ROUNDS);
 
-    /* Rounds 13..1: InvShiftRows, InvSubBytes, AddRoundKey, InvMixColumns */
     for (int round = AES_ROUNDS - 1; round >= 1; round--) {
         inv_shift_rows(state);
         inv_sub_bytes(state);
@@ -276,12 +208,10 @@ void aes256_decrypt_block(const aes256_ctx *ctx,
         inv_mix_columns(state);
     }
 
-    /* Final inverse round (no InvMixColumns) */
     inv_shift_rows(state);
     inv_sub_bytes(state);
     add_round_key(state, ctx->round_key, 0);
 
-    /* Write state to output */
     for (int c = 0; c < 4; c++)
         for (int r = 0; r < 4; r++)
             out[c * 4 + r] = state[c][r];

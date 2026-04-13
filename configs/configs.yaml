@@ -1,0 +1,28 @@
+# ==============================================================
+#  ECC-Encrypt Configuration — configs.yaml
+# ==============================================================
+
+# --- Elliptic Curve Parameters (secp256k1) ---
+ecc:
+  p:  "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F"
+  a:  "0"
+  b:  "7"
+  Gx: "0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798"
+  Gy: "0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8"
+  n:  "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141"
+
+# --- Private Keys ---
+keys:
+  alice_private: "123456789123456789"
+  bob_private:   "987654321987654321"
+
+# --- HKDF Parameters (RFC 5869) ---
+hkdf:
+  salt:     "ECIES-P256-SHA256-v1"
+  info_enc: "enc"
+  info_mac: "mac"
+
+# --- AES-256-GCM Parameters ---
+gcm:
+  iv:  "000102030405060708090a0b"
+  aad: "ECC-Encrypt-v1"
