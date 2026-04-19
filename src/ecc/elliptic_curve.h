@@ -1,57 +1,36 @@
 #ifndef ELLIPTIC_CURVE_H
 #define ELLIPTIC_CURVE_H
 
-#include <gmpxx.h>
+#include <cstdint>
 
 struct Point {
-    mpz_class x, y;
-    bool is_infinity = false;
+    std::int64_t x;
+    std::int64_t y;
+    bool is_infinity;
 };
 
-class EllipticCurve {
-public:
-    EllipticCurve() : p_(0), a_(0) {}
-    EllipticCurve(const mpz_class &p, const mpz_class &a) : p_(p), a_(a) {}
-
-    Point add(Point P, Point Q) const {
-        if (P.is_infinity) return Q;
-        if (Q.is_infinity) return P;
-        mpz_class s;
-        if (P.x == Q.x && P.y == Q.y) {
-            s = (3 * P.x * P.x + a_) * inverse(2 * P.y, p_);
-        } else {
-            if (P.x == Q.x) return {0, 0, true};
-            s = (Q.y - P.y) * inverse(Q.x - P.x, p_);
-        }
-        s %= p_;
-        Point R;
-        R.x = (s * s - P.x - Q.x) % p_;
-        R.y = (s * (P.x - R.x) - P.y) % p_;
-        if (R.x < 0) R.x += p_;
-        if (R.y < 0) R.y += p_;
-        return R;
-    }
-
-    Point multiply(mpz_class k, Point P) const {
-        Point R;
-        R.is_infinity = true;
-        Point Q = P;
-        while (k > 0) {
-            if (k % 2 == 1) R = add(R, Q);
-            Q = add(Q, Q);
-            k /= 2;
-        }
-        return R;
-    }
-
-private:
-    mpz_class p_, a_;
-
-    static mpz_class inverse(mpz_class a, mpz_class m) {
-        mpz_class res;
-        mpz_invert(res.get_mpz_t(), a.get_mpz_t(), m.get_mpz_t());
-        return res;
-    }
+struct Curve {
+    std::int64_t p;
+    std::int64_t a;
+    std::int64_t b;
 };
 
-#endif /* ELLIPTIC_CURVE_H */
+/* Chuan hoa ve [0, p-1] */
+std::int64_t mod(std::int64_t value, std::int64_t p);
+
+/* Tim nghich dao modulo bang Euclid mo rong */
+std::int64_t mod_inverse(std::int64_t value, std::int64_t p);
+
+/* Kiem tra diem nam tren duong cong: y^2 = x^3 + ax + b (mod p) */
+bool is_on_curve(const Curve &curve, const Point &point);
+
+/* Dao dau diem: (x, y) -> (x, -y mod p) */
+Point negate_point(const Curve &curve, const Point &point);
+
+/* Cong hai diem tren duong cong */
+Point point_add(const Curve &curve, const Point &p1, const Point &p2);
+
+/* Nhan vo huong: k * P, dung double-and-add */
+Point scalar_multiply(const Curve &curve, std::int64_t k, const Point &point);
+
+#endif
